@@ -5,9 +5,13 @@ from typing import Dict, Callable
 try:
     from .config import load_config
     from .irc_client import IRCClient
-except ImportError:
-    from irc_bot.config import load_config
-    from irc_bot.irc_client import IRCClient
+except Exception:
+    try:
+        from irc_bot.config import load_config
+        from irc_bot.irc_client import IRCClient
+    except Exception:
+        from config import load_config
+        from irc_client import IRCClient
 
 
 class Bot:
