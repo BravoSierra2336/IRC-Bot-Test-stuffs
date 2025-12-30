@@ -1,0 +1,37 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build artifacts (PyInstaller, etc.)
+dist/
+build/
+*.spec
+
+# Test/coverage tools
+.pytest_cache/
+.coverage
+coverage.xml
+
+# Editor/IDE settings
+.vscode/
+.idea/
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# Local configuration and data (keep example tracked)
+config.json
+profiles.json
+
+# OS-specific junk
+Thumbs.db
+.DS_Store
