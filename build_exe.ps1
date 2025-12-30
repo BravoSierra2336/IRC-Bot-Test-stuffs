@@ -16,13 +16,13 @@ if (-not (Test-Path $venvPath)) {
 $activate = Join-Path $venvPath "Scripts\Activate.ps1"
 . $activate
 
-# Upgrade pip and install PyInstaller
+# Upgrade pip and install PyInstaller (use module to avoid shim issues)
 python -m pip install --upgrade pip
-pip install pyinstaller
+python -m pip install pyinstaller
 
 # Build executable
 $exeName = "AscensionismBot"
-pyinstaller --onefile --name $exeName irc_bot\bot.py
+python -m PyInstaller --onefile --name $exeName irc_bot\bot.py
 
 Write-Host "Build complete. See dist/$exeName.exe"
 

@@ -107,5 +107,25 @@ cd "c:\Users\Xxima\Desktop\IRC Bot Test stuffs\dist"
 ./AscensionismBot.exe
 ```
 
+## One-Click Installer EXE
+If you prefer a single installer that pulls the latest code from GitHub, sets up Python, builds the bot, and runs it, use the provided PowerShell installer and optional EXE wrapper.
+
+### Run the installer script
+```powershell
+cd "c:\Users\Xxima\Desktop\IRC Bot Test stuffs"
+powershell -ExecutionPolicy Bypass -File .\installer.ps1 -RepoUrl "https://github.com/<owner>/<repo>.git" -Branch main
+```
+- Installs to `%LOCALAPPDATA%\AscensionismBot`.
+- Auto-creates `config.json` from `config.example.json` if missing and prompts to edit.
+- Builds `dist/AscensionismBot.exe` and launches it.
+
+### Build the installer into an .exe
+```powershell
+cd "c:\Users\Xxima\Desktop\IRC Bot Test stuffs"
+powershell -ExecutionPolicy Bypass -File .\make_installer_exe.ps1
+```
+- Produces `AscensionismBot-Installer.exe` at the project root.
+- The installer EXE accepts the same options as the script when run from a console; double-click runs with auto-detected repo if possible.
+
 ## License
 This project is provided as example code; adapt it freely for your needs.
