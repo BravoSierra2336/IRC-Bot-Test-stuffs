@@ -24,6 +24,7 @@ DEFAULTS = {
     "admins": [],
     "say_channel": None,
     "say_require_op": True,
+    "debug": False,
 }
 
 
@@ -95,5 +96,8 @@ def load_config(path: str = "config.json") -> Dict[str, Any]:
         raise ValueError("`say_channel` must be a string channel name or null")
     if not isinstance(data.get("say_require_op", True), bool):
         raise ValueError("`say_require_op` must be a boolean")
+
+    if not isinstance(data.get("debug", False), bool):
+        raise ValueError("`debug` must be a boolean")
 
     return data

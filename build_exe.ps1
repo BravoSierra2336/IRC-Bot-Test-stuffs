@@ -20,9 +20,18 @@ $activate = Join-Path $venvPath "Scripts\Activate.ps1"
 python -m pip install --upgrade pip
 python -m pip install pyinstaller
 
-# Build executable
+# Build executable using a wrapper entry to preserve package-relative imports
 $exeName = "AscensionismBot"
-python -m PyInstaller --onefile --name $exeName irc_bot\bot.py
+$entry = "_pyi_entry.py"
+@"
+import asyncio
+from irc_bot.bot import main
+
+if __name__ == "__main__":
+    asyncio.run(main())
+"@ | Set-Content -Path $entry -Encoding UTF8
+
+python -m PyInstaller --onefile --name $exeName $entry
 
 Write-Host "Build complete. See dist/$exeName.exe"
 

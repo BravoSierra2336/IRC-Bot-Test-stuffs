@@ -1,0 +1,19 @@
+{
+  "server": "irc.libera.chat",
+  "port": 6697,
+  "tls": true,
+  "nickname": "YourNick123",
+  "username": "youruser",
+  "realname": "Your Real Name",
+  "password": null,
+  "channels": ["#libera"],
+  "command_prefix": "!",
+  "sasl_enabled": false,
+  "sasl_username": null,
+  "sasl_password": null,
+  "nickserv_enabled": false,
+  "nickserv_username": null,
+  "nickserv_password": null
+}
+  "say_channel": "#forbidden",
+  "say_require_op": true

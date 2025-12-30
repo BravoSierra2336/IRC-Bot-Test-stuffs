@@ -63,6 +63,7 @@ class IRCClient:
         self.username = username
         self.realname = realname
         self.password = password
+            debug: bool = False,
         self.channels = channels or []
         self.sasl_enabled = sasl_enabled
         self.sasl_username = sasl_username
@@ -78,9 +79,12 @@ class IRCClient:
         self.on_welcome: Optional[Callable[[], None]] = None
         self.on_privmsg: Optional[Callable[[str, str, str], None]] = None  # nick, target, message
 
+            self.debug = debug
         # Channel user modes: channel -> nick -> set of mode letters {q,a,o,h,v}
         self.channel_modes: Dict[str, Dict[str, set]] = defaultdict(lambda: defaultdict(set))
-
+            if self.debug:
+                print(f"-> JOIN {channel}")
+            await self.send_raw(f"JOIN {channel}")
         # Internal SASL state
         self._sasl_requested: bool = False
         self._sasl_in_progress: bool = False
@@ -91,8 +95,37 @@ class IRCClient:
         ssl_ctx = None
         if self.tls:
             ssl_ctx = ssl.create_default_context()
-        self.reader, self.writer = await asyncio.open_connection(self.server, self.port, ssl=ssl_ctx)
+            if self.debug:
+                print(f"Connecting with TLS to {self.server}:{self.port}")
+        else:
+            if self.debug:
+                print(f"Connecting without TLS to {self.server}:{self.port}")
 
+        try:
+            self.reader, self.writer = await asyncio.open_connection(self.server, self.port, ssl=ssl_ctx)
+        except ssl.SSLError as e:
+            # Common when TLS is enabled on a plaintext port: WRONG_VERSION_NUMBER
+            if self.tls:
+                if self.debug:
+                    print(f"TLS handshake failed ({getattr(e, 'reason', 'SSLError')}). Retrying without TLS...")
+                # Retry without TLS
+                self.tls = False
+                self.reader, self.writer = await asyncio.open_connection(self.server, self.port, ssl=None)
+            else:
+                raise
+        except Exception:
+            # If plaintext connection fails but we're targeting 6697, try TLS
+            if not self.tls and self.port == 6697:
+                if self.debug:
+                    print("Plaintext connection to 6697 failed. Retrying with TLS...")
+                ssl_ctx = ssl.create_default_context()
+                self.tls = True
+                self.reader, self.writer = await asyncio.open_connection(self.server, self.port, ssl=ssl_ctx)
+            else:
+                raise
+
+                                if self.debug:
+                                    print("SASL: requested AUTHENTICATE PLAIN")
         # Request SASL if enabled
         if self.sasl_enabled:
             await self.send_raw("CAP REQ :sasl")
@@ -106,6 +139,8 @@ class IRCClient:
         # USER <username> 0 * :<realname>
         await self.send_raw(f"USER {self.username} 0 * :{self.realname}")
 
+                            if self.debug:
+                                print("SASL: sent credentials payload")
     async def send_raw(self, data: str) -> None:
         if not self.writer:
             return
@@ -113,22 +148,45 @@ class IRCClient:
         await self.writer.drain()
 
     async def join(self, channel: str) -> None:
+                        if self.debug:
+                            print("SASL: success")
         await self.send_raw(f"JOIN {channel}")
 
     async def send_privmsg(self, target: str, message: str) -> None:
         await self.send_raw(f"PRIVMSG {target} :{message}")
 
+                        if self.debug:
+                            print(f"SASL: failure numeric {cmd}")
     async def run(self) -> None:
         if not self.reader:
             raise RuntimeError("Client not connected. Call connect() first.")
 
         while True:
+                    if self.debug:
+                        params = msg.get("params", [])
+                        channel = params[-1] if params else ""
+                        print(f"Join: names list for {channel}")
             raw = await self.reader.readline()
             if not raw:
                 break
             line = raw.decode("utf-8", errors="ignore")
+                    if self.debug:
+                        params = msg.get("params", [])
+                        ch = params[0] if params else ""
+                        print(f"Mode change on {ch}: {' '.join(params[1:])}")
             msg = parse_irc_message(line)
+                # End of NAMES list means channel join completed
+                if cmd == "366":
+                    params = msg.get("params", [])
+                    ch = params[1] if len(params) > 1 else (params[0] if params else "")
+                    if self.debug:
+                        print(f"Joined {ch}")
             cmd = msg["command"].upper()
+                # Common join failure numerics
+                if cmd in {"471", "473", "474", "475", "476", "477"}:
+                    trailing = msg.get("trailing") or ""
+                    if self.debug:
+                        print(f"Join failed ({cmd}): {trailing}")
 
             if cmd == "PING":
                 arg = msg.get("trailing") or (msg["params"][0] if msg["params"] else "server")

@@ -24,6 +24,7 @@ class Bot:
             nickserv_enabled=cfg.get("nickserv_enabled", False),
             nickserv_username=cfg.get("nickserv_username") or None,
             nickserv_password=cfg.get("nickserv_password") or None,
+            debug=cfg.get("debug", False),
         )
 
         self.commands: Dict[str, Callable[[str, str, list[str]], None]] = {

@@ -1,0 +1,12 @@
+﻿AscensionismBot Quick Start (Windows)
+------------------------------------
+1) Copy 'payload' folder to a location you control (e.g., C:\Bots\AscensionismBot)
+2) In that folder, make a copy of 'config.example.json' named 'config.json'.
+3) Edit 'config.json' with your server, channels, and credentials.
+4) Double-click 'AscensionismBot.exe' to run the bot.
+
+Notes:
+- Keep 'config.json' next to the exe.
+- Profiles will be written to 'profiles.json' in the same folder.
+- TLS: set tls=true and port=6697 on most modern networks.
+- Stop the bot by closing the window or using Task Manager.

@@ -6,14 +6,25 @@
 param(
     [string]$RepoUrl,
     [string]$Branch = "main",
-    [string]$InstallDir = "$env:LOCALAPPDATA\AscensionismBot"
+    [string]$InstallDir = "$env:LOCALAPPDATA\AscensionismBot",
+    [switch]$NoInteract
 )
 
 $ErrorActionPreference = "Stop"
 
+function Pause-IfInteractive {
+    param([string]$Message = "Press Enter to exit...")
+    if (-not $NoInteract) {
+        Write-Host $Message
+        [void][System.Console]::ReadLine()
+    }
+}
+
 function Require-Tool($name) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        throw "Required tool '$name' not found in PATH. Please install $name and retry."
+        Write-Warning "Required tool '$name' not found in PATH. Please install $name and retry."
+        Pause-IfInteractive "Missing prerequisite. Press Enter to exit..."
+        exit 1
     }
 }
 
@@ -30,7 +41,17 @@ if (-not $RepoUrl) {
     finally { Pop-Location }
 }
 if (-not $RepoUrl) {
-    throw "RepoUrl not provided and could not be auto-detected. Provide -RepoUrl (e.g., https://github.com/owner/repo.git)."
+    if (-not $NoInteract) {
+        $prompt = "Enter Git repo URL (default: https://github.com/BravoSierra2336/IRC-Bot-Test-stuffs.git)"
+        $RepoUrl = Read-Host $prompt
+        if ([string]::IsNullOrWhiteSpace($RepoUrl)) {
+            $RepoUrl = "https://github.com/BravoSierra2336/IRC-Bot-Test-stuffs.git"
+        }
+    } else {
+        Write-Warning "RepoUrl not provided and could not be auto-detected. Provide -RepoUrl (e.g., https://github.com/owner/repo.git)."
+        Pause-IfInteractive "Press Enter to exit..."
+        exit 1
+    }
 }
 
 # Prepare install directory
@@ -79,21 +100,27 @@ if (Test-Path $req) {
 # Ensure PyInstaller
 pip install pyinstaller
 
-# Build executable
+# Build executable using a wrapper entry to preserve package-relative imports
 Write-Host "Building executable with PyInstaller..."
 Push-Location $InstallDir
 $exeName = "AscensionismBot"
-$spec = Join-Path $InstallDir "AscensionismBot.spec"
-if (Test-Path $spec) {
-    pyinstaller $spec
-} else {
-    pyinstaller --onefile --name $exeName "irc_bot\\bot.py"
-}
+$entry = Join-Path $InstallDir "_pyi_entry.py"
+@"
+import asyncio
+from irc_bot.bot import main
+
+if __name__ == "__main__":
+    asyncio.run(main())
+"@ | Set-Content -Path $entry -Encoding UTF8
+
+python -m PyInstaller --onefile --name $exeName $entry
 Pop-Location
 
 $distExe = Join-Path $InstallDir "dist\\$exeName.exe"
 if (-not (Test-Path $distExe)) {
-    throw "Build failed: $distExe not found."
+    Write-Warning "Build failed: $distExe not found."
+    Pause-IfInteractive "Build failed. Press Enter to exit..."
+    exit 1
 }
 
 # Config setup
@@ -103,9 +130,11 @@ if (-not (Test-Path $configPath)) {
     if (Test-Path $example) {
         Copy-Item -Force $example $configPath
         Write-Host "Created config.json from example. Please edit your settings."
-        try { Start-Process notepad.exe $configPath } catch {}
-        Write-Host "Press Enter to continue after editing config.json..."
-        [void][System.Console]::ReadLine()
+        if (-not $NoInteract) {
+            try { Start-Process notepad.exe $configPath } catch {}
+            Write-Host "Press Enter to continue after editing config.json..."
+            [void][System.Console]::ReadLine()
+        }
     } else {
         Write-Warning "No config.json found and config.example.json is missing. The bot may fail to start."
     }
@@ -113,5 +142,6 @@ if (-not (Test-Path $configPath)) {
 
 # Launch the bot
 Write-Host "Launching $distExe ..."
-Start-Process -NoNewWindow $distExe -WorkingDirectory (Split-Path $distExe)
-Write-Host "Installer finished. The bot should now be running."
+Start-Process $distExe -WorkingDirectory (Split-Path $distExe) -WindowStyle Normal
+Write-Host "Installer finished. A separate bot window should open."
+Pause-IfInteractive
