@@ -1,8 +1,13 @@
 import asyncio
 from typing import Dict, Callable
 
-from .config import load_config
-from .irc_client import IRCClient
+# Robust imports: support running as a package or as a script (PyInstaller direct)
+try:
+    from .config import load_config
+    from .irc_client import IRCClient
+except ImportError:
+    from irc_bot.config import load_config
+    from irc_bot.irc_client import IRCClient
 
 
 class Bot:
